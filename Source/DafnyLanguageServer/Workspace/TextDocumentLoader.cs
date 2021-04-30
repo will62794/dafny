@@ -40,8 +40,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return null;
       }
       _notificationPublisher.Started(textDocument);
-      var serializedCounterExamples = await _verifier.VerifyAsync(program, cancellationToken);
-      _notificationPublisher.Completed(textDocument, serializedCounterExamples == null);
+      string? serializedCounterExamples = null;
+      try {
+        serializedCounterExamples = await _verifier.VerifyAsync(program, cancellationToken);
+      } finally {
+        _notificationPublisher.Completed(textDocument, serializedCounterExamples == null);
+      }
       return serializedCounterExamples;
     }
   }
