@@ -12,19 +12,19 @@ namespace Microsoft.Boogie.ModelViewer.Dafny {
 public class DafnyModel {
     public List<DafnyModelState> states = new();
     public readonly Model model;
-    internal readonly Model.Func f_set_select, f_seq_length, f_seq_index, f_box, f_dim, f_index_field, f_multi_index_field, f_dtype, f_null;
+    internal readonly Model.Func f_set_select, f_seq_length, f_seq_index, f_box, 
+      f_dim, f_index_field, f_multi_index_field, f_dtype, f_null, f_char_to_int,
+      f_type, f_char;
     private readonly Dictionary<Model.Element, Model.Element[]> ArrayLengths = new();
     private readonly Dictionary<Model.Element, Model.FuncTuple> DatatypeValues = new();
     private readonly Dictionary<Model.Element, string> localValue = new();
-    private readonly Dictionary<string, int> baseNameUse = new();
-    private readonly Dictionary<Model.Element, string> canonicalName = new();
-    private readonly ViewOptions viewOpts;
-    
+
+    private readonly HashSet<int> charCodes = new();
+
     private bool UseLocalsForCanonicalNames => false;
 
     public DafnyModel(Model model, ViewOptions viewOpts) {
       this.model = model;
-      this.viewOpts = viewOpts;
       f_set_select = MergeMapSelectFunctions(2);
       f_seq_length = model.MkFunc("Seq#Length", 1);
       f_seq_index = model.MkFunc("Seq#Index", 2);
@@ -34,6 +34,11 @@ public class DafnyModel {
       f_multi_index_field = model.MkFunc("MultiIndexField", 2);
       f_dtype = model.MkFunc("dtype", 1);
       f_null = model.MkFunc("null", 0);
+      f_char_to_int = model.MkFunc("char#ToInt", 1);
+      f_type = model.MkFunc("type", 1);
+      f_char = model.MkFunc("charType", 0);
+      
+      InitCharCodes();
 
       // collect the array dimensions from the various array.Length functions, and
       // collect all known datatype values
@@ -67,6 +72,11 @@ public class DafnyModel {
           }
         }
       }
+    }
+
+    private void InitCharCodes() {
+      foreach (var app in f_char_to_int.Apps)
+        charCodes.Add(((Model.Integer) app.Result).AsInt());
     }
 
     /// <summary>
@@ -103,45 +113,11 @@ public class DafnyModel {
       return name;
     }
     
-    public string CanonicalName(Model.Element elt)
-    {
+    public string CanonicalName(Model.Element elt) {
       string res;
       if (elt == null) return "?";
-      if (canonicalName.TryGetValue(elt, out res)) return res;
-      NameSeqSuffix suff;
-      var baseName = CanonicalBaseName(elt, out suff);
-      if (baseName == "")
-        suff = NameSeqSuffix.Always;
-      if (baseName == "null")
-        return baseName;
-
-      if (viewOpts.DebugMode && !(elt is Model.Boolean) && !(elt is Model.Number))
-      {
-        baseName += string.Format("({0})", elt);
-        suff = NameSeqSuffix.WhenNonZero;
-      }
-
-      int cnt;
-      if (!baseNameUse.TryGetValue(baseName, out cnt))
-        cnt = -1;
-      cnt++;
-
-      if (suff == NameSeqSuffix.Always || (cnt > 0 && suff == NameSeqSuffix.WhenNonZero))
-        res = AppendSuffix(baseName, cnt);
-      else
-        res = baseName;
-
-      baseNameUse[baseName] = cnt;
-      canonicalName.Add(elt, res);
-      return res;
-    }
-
-    protected string CanonicalBaseName(Model.Element elt, out NameSeqSuffix suff)
-    {
       Model.FuncTuple fnTuple;
-      suff = NameSeqSuffix.WhenNonZero;
-      if (DatatypeValues.TryGetValue(elt, out fnTuple))
-      {
+      if (DatatypeValues.TryGetValue(elt, out fnTuple)) {
         // elt is s a datatype value, make its name be the name of the datatype constructor
         string nm = fnTuple.Func.Name;
         if (fnTuple.Func.Arity == 0)
@@ -149,9 +125,7 @@ public class DafnyModel {
         return nm + "(...)";
       }
       var seqLen = f_seq_length.AppWithArg(0, elt);
-      if (seqLen != null)
-      {
-        // elt is a sequence
+      if (seqLen != null) { // elt is a sequence
         return string.Format("[Length {0}]", seqLen.Result.AsInt());
       }
 
@@ -159,31 +133,34 @@ public class DafnyModel {
         return "null";
 
       var tp = f_dtype.TryEval(elt);
-      if (tp != null)
-      {
-        foreach (var app in tp.References)
-        {
-          if (app.Args.Length == 0 && app.Func.Name.StartsWith("class."))
-          {
-            suff = NameSeqSuffix.Always;
+      if (tp != null) {
+        foreach (var app in tp.References) {
+          if (app.Args.Length == 0 && app.Func.Name.StartsWith("class.")) {
             return app.Func.Name.Substring(6);
           }
         }
       }
-      
-      string res;
-      if (elt is Model.Integer || elt is Model.Boolean)
-      {
-        suff = NameSeqSuffix.None;
+      if (elt is Model.Integer || elt is Model.Boolean) {
         return elt.ToString();
       }
-      suff = NameSeqSuffix.Always;
-      if (UseLocalsForCanonicalNames)
-      {
+
+      if (f_type.AppWithArg(0, elt) != null && f_type.AppWithArg(0, elt).Result == f_char.GetConstant()) {
+        int utfCode = 33; // TODO: use a constant here
+        if (f_char_to_int.AppWithArg(0, elt) != null)
+          utfCode = ((Model.Integer) f_char_to_int.AppWithArg(0, elt).Result).AsInt();
+        else {
+          while (charCodes.Contains(utfCode)) {
+            utfCode++;
+          }
+        }
+        return "'" + Char.ConvertFromUtf32(utfCode) + "'";
+      }
+
+      if (UseLocalsForCanonicalNames) {
         if (localValue.TryGetValue(elt, out res))
           return res;
       }
-      return "";
+      return "?";
     }
 
     public IEnumerable<DafnyModelVariable> GetExpansion(DafnyModelState dafnyModelState, DafnyModelVariable var)
