@@ -4,8 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using Microsoft.Boogie.ModelViewer.Dafny;
 
 namespace Microsoft.Boogie.ModelViewer
 {
@@ -20,7 +18,6 @@ namespace Microsoft.Boogie.ModelViewer
   {
     private readonly Dictionary<string, int> baseNameUse = new();
     private readonly Dictionary<Model.Element, string> canonicalName = new();
-    private readonly Dictionary<string, Model.Element> invCanonicalName = new();
     private readonly Dictionary<Model.Element, string> localValue = new();
     public readonly Model model;
 
@@ -85,6 +82,8 @@ namespace Microsoft.Boogie.ModelViewer
       var baseName = CanonicalBaseName(elt, out suff);
       if (baseName == "")
         suff = NameSeqSuffix.Always;
+      if (baseName == "null")
+        return baseName;
 
       if (viewOpts.DebugMode && !(elt is Model.Boolean) && !(elt is Model.Number))
       {
@@ -104,57 +103,8 @@ namespace Microsoft.Boogie.ModelViewer
 
       baseNameUse[baseName] = cnt;
       canonicalName.Add(elt, res);
-      invCanonicalName[res.Replace(" ", "")] = elt;
       return res;
     }
-
-    public abstract IEnumerable<DafnyModelState> States { get; }
-
-    /// <summary>
-    /// Walks each input tree in BFS order, and force evaluation of Name and Value properties
-    /// (to get reasonable numbering of canonical values).
-    /// </summary>
-    public void Flush(IEnumerable<DisplayNode> roots)
-    {
-      var workList = new Queue<DisplayNode>();
-
-      Action<IEnumerable<DisplayNode>> addList = nodes =>
-      {
-        var ch = new Dictionary<string, DisplayNode>();
-        foreach (var x in nodes)
-        {
-          if (ch.ContainsKey(x.Name))
-          {
-            // throw new System.InvalidOperationException("duplicated model entry: " + x.Name);
-          }
-          ch[x.Name] = x;
-        }
-        foreach (var k in SortFields(nodes))
-          workList.Enqueue(ch[k]);
-      };
-
-      addList(roots);
-
-      var visited = new HashSet<Model.Element>();
-      while (workList.Count > 0)
-      {
-        var n = workList.Dequeue();
-
-        var dummy1 = n.Name;
-        var dummy2 = n.Value;
-
-        if (n.Element != null)
-        {
-          if (visited.Contains(n.Element))
-            continue;
-          visited.Add(n.Element);
-        }
-
-        addList(n.Children);
-      }
-    }
-
-    #region field name sorting
 
     static ulong GetNumber(string s, int beg)
     {
@@ -200,23 +150,6 @@ namespace Microsoft.Boogie.ModelViewer
 
       return string.CompareOrdinal(f1, f2);
     }
-
-    public int CompareFields(DisplayNode n1, DisplayNode n2)
-    {
-      var diff = (int)n1.Category - (int)n2.Category;
-      if (diff != 0) return diff;
-      return CompareFieldNames(n1.Name, n2.Name);
-    }
-
-    public IEnumerable<string> SortFields(IEnumerable<DisplayNode> fields_)
-    {
-      var fields = new List<DisplayNode>(fields_);
-      fields.Sort(CompareFields);
-      return fields.Select(f => f.Name);
-    }
-    #endregion
-
-    #region Displaying source code
 
     public class SourceLocation
     {
@@ -271,91 +204,28 @@ namespace Microsoft.Boogie.ModelViewer
       }
       return tok;
     }
-
-    #endregion
   }
 
-  public class EdgeName
+  public class ViewOptions
   {
-    LanguageModel langModel;
-    string format;
-    string cachedName;
-    Model.Element[] args;
+    // 0 - Normal
+    // 1 - Expert
+    // 2 - Everything
+    // 3 - Include the kitchen sink
+    public int ViewLevel = 1;
+    public bool DebugMode;
+  }
 
-    public EdgeName(LanguageModel n, string format, params Model.Element[] args)
+  public static class Util
+  {
+
+    public static IEnumerable<T> Empty<T>() { yield break; }
+
+    public static IEnumerable<T> Map<S, T>(this IEnumerable<S> inp, Func<S, T> conv)
     {
-      this.langModel = n;
-      this.format = format;
-      this.args = args.ToArray();
+      foreach (var s in inp) yield return conv(s);
     }
-
-    public EdgeName(string name) : this(null, name)
-    {
-      Util.Assert(name != null);
-    }
-
-    public override string ToString()
-    {
-      if (cachedName != null)
-        return cachedName;
-      cachedName = Format();
-      return cachedName;
-    }
-
-    public override int GetHashCode()
-    {
-      int res = format.GetHashCode();
-      foreach (var c in args)
-      {
-        res += c.GetHashCode();
-        res *= 13;
-      }
-      return res;
-    }
-
-    public override bool Equals(object obj)
-    {
-      EdgeName e = obj as EdgeName;
-      if (e == null) return false;
-      if (e == this) return true;
-      if (e.format != this.format || e.args.Length != this.args.Length)
-        return false;
-      for (int i = 0; i < this.args.Length; ++i)
-        if (this.args[i] != e.args[i])
-          return false;
-      return true;
-    }
-
-    protected virtual string Format()
-    {
-      if (args == null || args.Length == 0)
-        return format;
-
-      var res = new StringBuilder(format.Length);
-      for (int i = 0; i < format.Length; ++i)
-      {
-        var c = format[i];
-
-        if (c == '%' && i < format.Length - 1)
-        {
-          var j = i + 1;
-          while (j < format.Length && char.IsDigit(format[j]))
-            j++;
-          var len = j - i - 1;
-          if (len > 0)
-          {
-            var idx = int.Parse(format.Substring(i + 1, len));
-            res.Append(langModel.CanonicalName(args[idx]));
-            i = j - 1;
-            continue;
-          }
-        }
-
-        res.Append(c);
-      }
-
-      return res.ToString();
-    }
+    
   }
 
 }
