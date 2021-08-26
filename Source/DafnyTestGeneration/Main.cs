@@ -27,7 +27,7 @@ namespace DafnyTestGeneration {
 
       // Generate tests based on counterexamples produced from modifications
       for (var i = modifications.Count - 1; i >= 0; i--) {
-        modifications[i].GetCounterExampleLog();
+        var _ = modifications[i].Log;
         var deadStates = ((BlockBasedModification)modifications[i])
           .GetKnownDeadStates();
         if (deadStates.Count != 0) {
@@ -85,12 +85,11 @@ namespace DafnyTestGeneration {
       Program program, DafnyInfo? dafnyInfo = null) {
 
       dafnyInfo ??= new DafnyInfo(program);
-      var modifications = GetModifications(program).ToList();
 
       // Generate tests based on counterexamples produced from modifications
       var testMethods = new ConcurrentBag<TestMethod>();
-      for (var i = modifications.Count - 1; i >= 0; i--) {
-        var log = modifications[i].GetCounterExampleLog();
+      foreach (var modification in GetModifications(program)) {
+        var log = modification.Log;
         if (log == null) {
           continue;
         }

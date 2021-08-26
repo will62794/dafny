@@ -17,32 +17,31 @@ namespace DafnyTestGeneration {
       this.capturedStates = capturedStates;
     }
 
-    public override string? GetCounterExampleLog() {
-
-      if (covered.Contains(blockId)) {
-        return null;
-      }
-      var log = base.GetCounterExampleLog();
-      if (log == null) {
-        return null;
-      }
-
-      string? line;
-      var stringReader = new StringReader(log);
-      var newBlocksCovered = false;
-      while ((line = stringReader.ReadLine()) != null) {
-        if (!line.StartsWith("Block |")) {
-          continue;
+    /// <summary>
+    /// Return the log or null if the counterexample in the log does not
+    /// cover any new blocks.
+    /// </summary>
+    public override string? Log {
+      get {
+        if (covered.Contains(blockId) || log == null) {
+          return null;
         }
-        var newId = int.Parse(Regex.Replace(line, @"\s+", "").Split('|')[2]);
-        if (covered.Contains(newId)) {
-          continue;
+        string? line;
+        var stringReader = new StringReader(log);
+        var newBlocksCovered = false;
+        while ((line = stringReader.ReadLine()) != null) {
+          if (!line.StartsWith("Block |")) {
+            continue;
+          }
+          var newId = int.Parse(Regex.Replace(line, @"\s+", "").Split('|')[2]);
+          if (covered.Contains(newId)) {
+            continue;
+          }
+          newBlocksCovered = true;
+          covered.Add(newId);
         }
-        newBlocksCovered = true;
-        covered.Add(newId);
+        return newBlocksCovered ? log : null;
       }
-
-      return newBlocksCovered ? log : null;
     }
 
     /// <summary>

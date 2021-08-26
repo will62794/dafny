@@ -11,12 +11,18 @@ namespace DafnyTestGeneration {
 
     private string? implName; // name of the implementation currently traversed
     private Program? program; // the original program
-    private List<ProgramModification> modifications = new();
+    private List<(Block block, string procedureName)> toAssert = new();
 
     protected override IEnumerable<ProgramModification> GetModifications(Program p) {
-      modifications = new List<ProgramModification>();
+      toAssert = new();
       VisitProgram(p);
-      return modifications;
+      foreach (var instance in toAssert) {
+        instance.block.cmds.Add(GetCmd("assert false;"));
+        var modification = new BlockBasedModification(p, instance.procedureName,
+          instance.block.UniqueId, ExtractCapturedStates(instance.block));
+        yield return modification;
+        instance.block.cmds.RemoveAt(instance.block.cmds.Count - 1);
+      }
     }
 
     public override Block VisitBlock(Block node) {
@@ -27,12 +33,7 @@ namespace DafnyTestGeneration {
       if (node.cmds.Count == 0) { // ignore blocks with zero commands
         return node;
       }
-      node.cmds.Add(GetCmd("assert false;"));
-      var record = new BlockBasedModification(program,
-        ProcedureName ?? implName,
-        node.UniqueId, ExtractCapturedStates(node));
-      modifications.Add(record);
-      node.cmds.RemoveAt(node.cmds.Count - 1);
+      toAssert.Add(new (node, ProcedureName ?? implName));
       return node;
     }
 

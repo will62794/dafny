@@ -16,27 +16,17 @@ namespace DafnyTestGeneration {
   public class ProgramModification {
 
     private readonly string procedure; // procedure to be tested
-    private readonly Program program;
-
-    public ProgramModification(Program program, string procedure) {
-      this.program = DeepCloneProgram(program);
-      this.procedure = procedure;
-    }
+    protected readonly string? log;
 
     /// <summary>
-    /// Deep clone the program.
+    /// Return the log or null if the counterexample in the log does not
+    /// cover any new blocks \ paths.
     /// </summary>
-    private static Program DeepCloneProgram(Program program) {
-      var oldPrintInstrumented = DafnyOptions.O.PrintInstrumented;
-      var oldPrintFile = DafnyOptions.O.PrintFile;
-      DafnyOptions.O.PrintInstrumented = true;
-      DafnyOptions.O.PrintFile = "-";
-      var textRepresentation = Utils.CaptureConsoleOutput(
-        () => program.Emit(new TokenTextWriter(Console.Out)));
-      Microsoft.Boogie.Parser.Parse(textRepresentation, "", out var copy);
-      DafnyOptions.O.PrintInstrumented = oldPrintInstrumented;
-      DafnyOptions.O.PrintFile = oldPrintFile;
-      return copy;
+    public virtual string? Log => log;
+
+    public ProgramModification(Program program, string procedure) {
+      this.procedure = procedure;
+      log = GetCounterExampleLog(program);
     }
 
     /// <summary>
@@ -64,10 +54,10 @@ namespace DafnyTestGeneration {
 
     /// <summary>
     /// Return the counterexample log produced by trying to verify this modified
-    /// version of the original boogie program. Return null if this
-    /// counterexample does not cover any new SourceModifications.
+    /// version of the original boogie program. Return null if verification
+    /// succeeded or timed out.
     /// </summary>
-    public virtual string? GetCounterExampleLog() {
+    protected string? GetCounterExampleLog(Program program) {
       var oldOptions = DafnyOptions.O;
       var options = SetupOptions(procedure);
       DafnyOptions.Install(options);
@@ -78,20 +68,20 @@ namespace DafnyTestGeneration {
       ExecutionEngine.CollectModSets(program);
       ExecutionEngine.CoalesceBlocks(program);
       ExecutionEngine.Inline(program);
-      var log = Utils.CaptureConsoleOutput(
+      var result = Utils.CaptureConsoleOutput(
         () => ExecutionEngine.InferAndVerify(program,
           new PipelineStatistics(), uniqueId,
           _ => { }, uniqueId));
       DafnyOptions.Install(oldOptions);
       // make sure that there is a counterexample (i.e. no parse errors, etc):
       string? line;
-      var stringReader = new StringReader(log);
+      var stringReader = new StringReader(result);
       while ((line = stringReader.ReadLine()) != null) {
         if (line.StartsWith("Block |")) {
-          return log;
+          return result;
         }
       }
-      return null;
+      return result;
     }
   }
 }

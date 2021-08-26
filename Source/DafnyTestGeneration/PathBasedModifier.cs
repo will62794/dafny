@@ -19,10 +19,9 @@ namespace DafnyTestGeneration {
       p = VisitProgram(p); // populates paths
       foreach (var path in paths) {
         path.AssertPath();
-        result.Add(new ProgramModification(p, ProcedureName ?? path.Impl.Name));
+        yield return new ProgramModification(p, ProcedureName ?? path.Impl.Name);
         path.NoAssertPath();
       }
-      return result;
     }
 
     /// <summary>
