@@ -528,7 +528,20 @@ namespace Microsoft.Dafny {
       }
     }
 
+    private Dictionary<string, string> AssertionsDictionary = new Dictionary<string, string>() {
+      {"assertEquals", "static public <T> void assertEquals(dafny.TypeDescriptor<T> typeDescriptor, T left, T right) {\n\torg.junit.jupiter.api.Assertions.assertEquals(left, right);\n}"},
+      {"assertTrue", "static public void assertTrue(boolean value) {\n\torg.junit.jupiter.api.Assertions.assertTrue(value);\n}"},
+      {"assertFalse", "static public void assertFalse(boolean value) {\n\torg.junit.jupiter.api.Assertions.assertFalse(value);\n}"},
+      {"expectEquals", "static public <T> void assertEquals(dafny.TypeDescriptor<T> typeDescriptor, T left, T right) {\n\torg.junit.jupiter.api.Assertions.assertEquals(left, right);\n}"},
+      {"expectTrue", "static public void assertTrue(boolean value) {\n\torg.junit.jupiter.api.Assertions.assertTrue(value);\n}"},
+      {"expectFalse", "static public void assertFalse(boolean value) {\n\torg.junit.jupiter.api.Assertions.assertFalse(value);\n}"},
+    };
+
     protected ConcreteSyntaxTree CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
+      Console.Out.WriteLine(m.Name);
+      if (AssertionsDictionary.ContainsKey(m.Name)) {
+        wr.WriteLine(AssertionsDictionary[m.Name]);
+      }
       if (m.IsExtern(out _, out _) && (m.IsStatic || m is Constructor)) {
         // No need for an abstract version of a static method or a constructor
         return null;
@@ -875,6 +888,39 @@ namespace Microsoft.Dafny {
     // in the base class
     protected override bool IncludeExternMembers { get => true; }
 
+    private void WriteJUnitCode(ConcreteSyntaxTree wr) {
+      var filename = $"{ModulePath}/Assertions.java"; // how to check if already defined?
+      var w = wr.NewFile(filename);
+      FileCount += 1;
+
+      w.WriteLine($"package {ModuleName};");
+      w.WriteLine();
+      w.WriteLine("import org.junit.jupiter.api.Assertions;");
+      w.WriteLine();
+      w.WriteLine("public class Assertions {");
+      w.WriteLine("public Assertions() {");
+      w.WriteLine("}");
+      w.WriteLine("static public <T> void assertEquals(dafny.TypeDescriptor<T> typeDescriptor, T left, T right) {");
+      w.WriteLine("Assertions.assertEquals(left, right);");
+      w.WriteLine("}");
+      w.WriteLine("static public <T> void expectEquals(dafny.TypeDescriptor<T> typeDescriptor, T left, T right) {");
+      w.WriteLine("Assertions.assertEquals(left, right);");
+      w.WriteLine("}");
+      w.WriteLine("static public void assertTrue(boolean value) {");
+      w.WriteLine("Assertions.assertTrue(value);");
+      w.WriteLine("}");
+      w.WriteLine("static public void expectTrue(boolean value) {");
+      w.WriteLine("Assertions.assertTrue(value);");
+      w.WriteLine("}");
+      w.WriteLine("static public void assertFalse(boolean value) {");
+      w.WriteLine("Assertions.assertFalse(value);");
+      w.WriteLine("}");
+      w.WriteLine("static public void expectFalse(boolean value) {");
+      w.WriteLine("Assertions.assertFalse(value);");
+      w.WriteLine("}");
+      w.WriteLine("}");
+    }
+
     //
     // An example to show how type parameters are dealt with:
     //
@@ -900,6 +946,9 @@ namespace Microsoft.Dafny {
     //
     protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string /*?*/ fullPrintName,
       List<TypeParameter> typeParameters, TopLevelDecl cls, List<Type> /*?*/ superClasses, Bpl.IToken tok, ConcreteSyntaxTree wr) {
+      if (Attributes.Contains(cls.Attributes, "test")) {
+        //WriteJUnitCode(wr);
+      }
       var javaName = isExtern ? FormatExternBaseClassName(name) : name;
       var filename = $"{ModulePath}/{javaName}.java";
       var w = wr.NewFile(filename);
