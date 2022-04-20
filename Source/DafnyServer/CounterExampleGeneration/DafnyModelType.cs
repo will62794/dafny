@@ -36,18 +36,26 @@ namespace DafnyServer.CounterexampleGeneration {
     public DafnyModelType InDafnyFormat() {
       // The line below converts "_m" used in boogie to separate modules to ".":
       var tmp = Regex.Replace(Name, "(?<=[^_](__)*)_m", ".");
+      // strip everything after @, this is done for type variables:
+      tmp = tmp.Split("@")[0];
       // The code below converts every "__" to "_":
       var removeNextUnderscore = false;
       var newName = "";
+      var prev = ' ';
       foreach (var c in tmp) {
         if (c == '_') {
           if (!removeNextUnderscore) {
             newName += c;
+            removeNextUnderscore = true;
+          } else if (removeNextUnderscore && (prev == '_')) {
+            removeNextUnderscore = false;
+          } else {
+            newName += c;
           }
-          removeNextUnderscore = !removeNextUnderscore;
         } else {
           newName += c;
         }
+        prev = c;
       }
       return new(newName, TypeArgs.ConvertAll(type => type.InDafnyFormat()));
     }
@@ -55,6 +63,28 @@ namespace DafnyServer.CounterexampleGeneration {
     public DafnyModelType GetNonNullable() {
       var newName = Name.Trim('?');
       return new DafnyModelType(newName, TypeArgs);
+    }
+
+    public DafnyModelType ReplaceTypeVariables(string with) {
+      // Assigns the given value to all type variables
+      var newName = Name.Contains("$") ? with : Name;
+      return new(newName, TypeArgs.ConvertAll(type =>
+        type.ReplaceTypeVariables(with)));
+    }
+
+    public override int GetHashCode() {
+      int hash = Name.GetHashCode();
+      foreach (var typ in TypeArgs) {
+        hash = 31 * typ.GetHashCode();
+      }
+      return hash;
+    }
+
+    public override bool Equals(object other) {
+      if (other is not DafnyModelType typ) {
+        return false;
+      }
+      return typ.ToString() == ToString();
     }
 
     /// <summary>

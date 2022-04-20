@@ -117,7 +117,7 @@ namespace DafnyServer.CounterexampleGeneration {
         } else if (fn.Name.StartsWith("#") && fn.Name.IndexOf('.') != -1 && fn.Name[1] != '#') {
           foreach (var tpl in fn.Apps) {
             var elt = tpl.Result;
-            datatypeValues.Add(elt, tpl);
+            datatypeValues[elt] = tpl; // TODO
           }
         }
       }
@@ -376,7 +376,7 @@ namespace DafnyServer.CounterexampleGeneration {
         return new DafnyModelType("?");
       }
       var fullName = GetTrueName(typeElement);
-      if (fullName != null && fullName.Length > 7) {
+      if (fullName != null && fullName.Length > 7 && fullName.Substring(0, 7).Equals("Tclass.")) {
         return new DafnyModelType(fullName.Substring(7));
       }
       if (fullName is "TInt" or "TReal" or "TChar" or "TBool") {
@@ -384,6 +384,9 @@ namespace DafnyServer.CounterexampleGeneration {
       }
       if (fBv.AppWithResult(typeElement) != null) {
         return new DafnyModelType("bv" + ((Model.Integer)fBv.AppWithResult(typeElement).Args[0]).AsInt());
+      }
+      if (fullName != null) { // this means this is a type variable
+        return new DafnyModelType(fullName);
       }
       var tagElement = fTag.OptEval(typeElement);
       if (tagElement == null) {

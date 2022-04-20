@@ -60,7 +60,7 @@ namespace DafnyServer.CounterexampleGeneration {
   public class DafnyModelVariable {
 
     public readonly string Name; // name given to the variable at creation
-    public readonly DafnyModelType Type; // Dafny type of the variable
+    public DafnyModelType Type; // Dafny type of the variable
     public readonly Model.Element Element;
     private readonly DafnyModelState state; // the associated captured state
     // A child is a field or a value at a given index of an array, etc.
@@ -89,6 +89,10 @@ namespace DafnyServer.CounterexampleGeneration {
 
     public virtual IEnumerable<DafnyModelVariable> GetExpansion() {
       return state.Model.GetExpansion(state, this);
+    }
+
+    public string CanonicalName() {
+      return state.Model.CanonicalName(Element);
     }
 
     public virtual string Value {

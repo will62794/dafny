@@ -104,6 +104,8 @@ namespace DafnyTestGeneration {
     /// </summary>
     public static IEnumerable<string> GetTestClassForProgram(string sourceFile) {
 
+      TestMethod.clearFreshMethods();
+
       var source = new StreamReader(sourceFile).ReadToEnd();
       var program = Utils.Parse(source, sourceFile);
       if (program == null) {
@@ -125,6 +127,8 @@ namespace DafnyTestGeneration {
       foreach (var method in GetTestMethodsForProgram(program, dafnyInfo)) {
         yield return method.ToString();
       }
+
+      yield return TestMethod.emitFreshMethods();
 
       yield return "}";
     }

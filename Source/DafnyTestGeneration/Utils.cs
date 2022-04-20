@@ -61,13 +61,14 @@ namespace DafnyTestGeneration {
     /// Restore the original name of a Dafny method from its Boogie translation
     /// </summary>
     public static string GetDafnyMethodName(string boogieName) {
-      boogieName = boogieName.Split("$").Last();
-      var methodName = boogieName.Split(".").Last();
+      boogieName = new DafnyModelType(boogieName.Split("$").Last()).InDafnyFormat().Name;
+      // TODO: be smarter about this conversion!
+      var methodName = boogieName.Split(".").Last().Split("_").Last();
       var classPath = new DafnyModelType(boogieName
-        .Substring(0, boogieName.Length - methodName.Length - 1))
+          .Substring(0, boogieName.Length - methodName.Length - 1))
         .InDafnyFormat().Name
         .Split(".")
-        .Where(m => m[0] != '_');
+        .Where(m => m != "" && m[0] != '_');
       var className = string.Join(".", classPath);
       return className.Equals("") ? methodName : $"{className}.{methodName}";
     }
