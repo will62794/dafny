@@ -25,6 +25,7 @@ namespace DafnyTestGeneration {
     public readonly string MethodName;
     // values of the arguments to be passed to the method call
     public readonly List<string> ArgValues;
+    private readonly DafnyModel dafnyModel;
 
     private static readonly Dictionary<DafnyModelType, string> freshMethods = new();
 
@@ -32,7 +33,7 @@ namespace DafnyTestGeneration {
       DafnyInfo = dafnyInfo;
       var typeNames = ExtractPrintedInfo(log, "Types | ");
       var argumentNames = ExtractPrintedInfo(log, "Impl | ");
-      var dafnyModel = DafnyModel.ExtractModel(log);
+      dafnyModel = DafnyModel.ExtractModel(log);
       MethodName = Utils.GetDafnyMethodName(argumentNames.First());
       argumentNames.RemoveAt(0);
       ArgValues = ExtractInputs(dafnyModel.States.First(), argumentNames, typeNames);
@@ -149,7 +150,7 @@ namespace DafnyTestGeneration {
           return $"map[{string.Join(", ", mappingStrings)}]";
         case var arrType when new Regex("^_System.array[0-9]*\\?$").IsMatch(arrType):
           break;
-        case var _ when (variable.Value.StartsWith("(") && variable.Value != "null"):
+        case var _ when (!variable.Value.StartsWith("(") && variable.Value != "null"):
           var dataType = variable.Type.GetNonNullable().InDafnyFormat().ReplaceTypeVariables("int");
           List<string> fields = new();
           foreach (var filedName in variable.children.Keys) {
