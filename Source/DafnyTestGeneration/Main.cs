@@ -18,7 +18,7 @@ namespace DafnyTestGeneration {
     /// </summary>
     /// <returns></returns>
     public static async IAsyncEnumerable<string> GetDeadCodeStatistics(Program program) {
-      
+
       var modifications = GetModifications(program).ToList();
       var blocksReached = modifications.Count;
       HashSet<string> allStates = new();
@@ -80,7 +80,7 @@ namespace DafnyTestGeneration {
     /// </summary>
     /// <returns></returns>
     public static async IAsyncEnumerable<TestMethod> GetTestMethodsForProgram(Program program) {
-      
+
       var dafnyInfo = new DafnyInfo(program);
       var modifications = GetModifications(program).ToList();
 
@@ -92,12 +92,44 @@ namespace DafnyTestGeneration {
           continue;
         }
 
+        var coveredBlocks = DafnyOptions.O.TestGenOptions.prevCoveredBlocks;
+        // Print out approximate source code line corresponding to covered block.
+        BlockBasedModification bm = (BlockBasedModification)modifications[i];
+        var capturedStates = bm.getCapturedStates();
+        // foreach(var cs in capturedStates){
+        //   Console.WriteLine("captured state:" + cs);
+        // }
+        var capturedList = capturedStates.ToList();
+        var capturedStateBlock = "";
+        if (capturedList.Count > 0) {
+          capturedList.Sort();
+          capturedStateBlock = capturedList.First();
+        }
+
+        if (coveredBlocks != null && coveredBlocks.Contains(capturedStateBlock)) {
+          // Don't generate test for this block, if we already did.
+          continue;
+        }
+
+        if (coveredBlocks != null) {
+          i = 0;
+        }
+
+        Console.WriteLine("COVERED:" + capturedStateBlock);
+
         if (DafnyOptions.O.TestGenOptions.Verbose) {
           Console.WriteLine(
             $"// Extracting the test for {modifications[i].uniqueId} from the counterexample...");
         }
 
         var testMethod = new TestMethod(dafnyInfo, log);
+        var assignments = testMethod.Assignments;
+
+        foreach (var assignment in assignments) {
+          Console.WriteLine("ASSIGNMENT:" + assignment.parentId + ":" + assignment.fieldName + ":" + assignment.childId);
+        }
+
+
         if (testMethodToUniqueId.ContainsKey(testMethod)) {
           if (DafnyOptions.O.TestGenOptions.Verbose) {
             Console.WriteLine(

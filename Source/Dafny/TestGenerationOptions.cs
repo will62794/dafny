@@ -1,6 +1,7 @@
 using System;
 using JetBrains.Annotations;
 using Bpl = Microsoft.Boogie;
+using System.Collections.Generic;
 
 namespace Microsoft.Dafny {
 
@@ -15,6 +16,7 @@ namespace Microsoft.Dafny {
     public uint Timeout = 100;
     public bool Verbose = false;
     [CanBeNull] public string PrintBpl = null;
+    public List<string> prevCoveredBlocks = null;
 
     public bool ParseOption(string name, Bpl.CommandLineParseState ps) {
       var args = ps.args;
@@ -56,20 +58,31 @@ namespace Microsoft.Dafny {
             TestInlineDepth = (uint)depth;
           }
           return true;
-        
+
         case "generateTestTimeout":
           var timeout = 0;
           if (ps.GetIntArgument(ref timeout)) {
             Timeout = (uint)timeout;
           }
           return true;
-        
+
         case "generateTestPrintBpl":
           if (ps.ConfirmArgumentCount(1)) {
             PrintBpl = args[ps.i];
           }
           return true;
-        
+
+        // Pass a set of blocks that should be considered as already covered.
+        case "generateTestPrevCoveredBlocks":
+          if (ps.ConfirmArgumentCount(1)) {
+            if (args[ps.i].Length == 0) {
+              prevCoveredBlocks = new List<string>();
+            } else {
+              prevCoveredBlocks = new List<string>(args[ps.i].Split(":"));
+            }
+          }
+          return true;
+
         case "generateTestVerbose":
           Verbose = true;
           return true;

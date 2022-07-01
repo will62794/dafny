@@ -15,10 +15,14 @@ namespace DafnyTestGeneration {
     private readonly ISet<string> capturedStates;
 
     public BlockBasedModification(Program program, string procedure,
-      int blockId, ISet<string> capturedStates) : base(program, procedure, 
+      int blockId, ISet<string> capturedStates) : base(program, procedure,
       $"{procedure.Split(" ")[0]}(block#{blockId})") {
       this.blockId = blockId;
       this.capturedStates = capturedStates;
+    }
+
+    public ISet<string> getCapturedStates() {
+      return capturedStates;
     }
 
     public override async Task<string?> GetCounterExampleLog() {

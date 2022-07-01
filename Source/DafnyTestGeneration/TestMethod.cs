@@ -37,7 +37,7 @@ namespace DafnyTestGeneration {
     // These methods are used to get fresh instances of the corresponding types
     private static readonly HashSet<string> TypesToSynthesize = new();
     // is set to true wheneve the tool ecnounters something it does not support
-    private List<string> errorMessages = new(); 
+    private List<string> errorMessages = new();
 
     public TestMethod(DafnyInfo dafnyInfo, string log) {
       DafnyInfo = dafnyInfo;
@@ -127,8 +127,8 @@ namespace DafnyTestGeneration {
     }
 
     private string GetFunctionOfType(ArrowType type) {
-      type = (ArrowType) DafnyModelTypeUtils.ReplaceTypeVariables(type, defaultType);
-      var lambda = 
+      type = (ArrowType)DafnyModelTypeUtils.ReplaceTypeVariables(type, defaultType);
+      var lambda =
         $"({string.Join(",", type.TypeArgs.SkipLast(1).Select((t, i) => "a" + i + ":" + t))})" + // parameter types
         $"=>" + // return type
         $"{GetDefaultValue(type.TypeArgs.Last())}"; // body
@@ -151,7 +151,7 @@ namespace DafnyTestGeneration {
       List<string> elements = new();
       var variableType = DafnyModelTypeUtils.GetInDafnyFormat(
         DafnyModelTypeUtils.ReplaceTypeVariables(variable.Type, defaultType));
-      if (variableType.ToString() == defaultType.ToString() && 
+      if (variableType.ToString() == defaultType.ToString() &&
           variableType.ToString() != variable.Type.ToString()) {
         return GetADefaultTypeValue(variable);
       }
@@ -165,7 +165,8 @@ namespace DafnyTestGeneration {
         case SeqType seqType:
           var seqVar = variable as SeqVariable;
           if (seqVar?.GetLength() == null) {
-            return "[]";
+            return "";
+            // return "[]";
           }
           for (var i = 0; i < seqVar.GetLength(); i++) {
             var element = seqVar[i];
@@ -175,7 +176,12 @@ namespace DafnyTestGeneration {
             }
             elements.Add(ExtractVariable(element));
           }
-          return $"[{string.Join(", ", elements)}]";
+          // return $"[{string.Join(", ", elements)}]";
+          // return "\"" + string.Join("", elements).Replace("'","") + "\"";
+
+          // TODO: This is temporary, hacky attempt to print out Dafny string values in a 
+          // parseable format, as opposed to in char sequence form i.e. ['a','b','c'].
+          return string.Join("", elements).Replace("'", "");
         case SetType:
           if (!variable.children.ContainsKey("true")) {
             return "{}";
@@ -194,14 +200,14 @@ namespace DafnyTestGeneration {
         case UserDefinedType tupleType when tupleType.Name.StartsWith("_System.Tuple"):
           var tupleName = "d" + DatatypeCreation.Count;
           // TODO: specify type
-          DatatypeCreation.Add((tupleName, DafnyModel.UndefinedType, "(" + 
+          DatatypeCreation.Add((tupleName, DafnyModel.UndefinedType, "(" +
             string.Join(",", variable.children.Values
-            .Select(v => ExtractVariable(v.First()))) +")"));
+            .Select(v => ExtractVariable(v.First()))) + ")"));
           return tupleName;
         case DafnyModelTypeUtils.DatatypeType dataType:
           // TODO: what about the order of fields?
           // TODO: What about type variables?
-          dataType = (DafnyModelTypeUtils.DatatypeType) DafnyModelTypeUtils
+          dataType = (DafnyModelTypeUtils.DatatypeType)DafnyModelTypeUtils
               .ReplaceTypeVariables(dataType, defaultType);
           List<string> fields = new();
           foreach (var filedName in variable.children.Keys.ToList().OrderBy(key => key)) {
@@ -285,7 +291,7 @@ namespace DafnyTestGeneration {
         case UserDefinedType tupleType when tupleType.Name.StartsWith("_System.Tuple"):
           // TODO: specify type
           var tupleName = "d" + DatatypeCreation.Count;
-          DatatypeCreation.Add((tupleName, DafnyModel.UndefinedType, "(" + 
+          DatatypeCreation.Add((tupleName, DafnyModel.UndefinedType, "(" +
             string.Join(",", tupleType.TypeArgs.Select(GetDefaultValue)) + ")"));
           return tupleName;
         case UserDefinedType synonym when DafnyInfo.SubsetTypeToSuperset.ContainsKey(synonym.Name):
@@ -334,7 +340,7 @@ namespace DafnyTestGeneration {
 
     /// <summary>  Return the test method as a list of lines of code </summary>
     private List<string> TestMethodLines() {
-      
+
       List<string> lines = new();
 
       if ((errorMessages.Count != 0)) {
