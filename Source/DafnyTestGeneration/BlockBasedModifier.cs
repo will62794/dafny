@@ -63,7 +63,8 @@ namespace DafnyTestGeneration {
           continue;
         }
         if (assumeCmd.Attributes?.Key == "captureState") {
-          result.Add(assumeCmd.Attributes?.Params?[0]?.ToString() ?? "");
+          // result.Add(assumeCmd.Attributes?.Params?[0]?.ToString() ?? "");
+          result.Add(assumeCmd.Attributes?.Params?[0]?.ToString().Replace(":", "_").Replace(" ", "_") ?? "");
         }
       }
       return result;
