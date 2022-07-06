@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Microsoft.Boogie;
 using System;
+using System.Linq;
 
 namespace DafnyTestGeneration {
 
@@ -14,6 +15,15 @@ namespace DafnyTestGeneration {
     private Program? program; // the original program
     private List<ProgramModification> modifications = new();
 
+    public List<string> prevCoveredBlocks;
+    private bool doneCovering = false;
+
+    public BlockBasedModifier() : base() { }
+
+    public BlockBasedModifier(List<string> coveredBlocks) : base() {
+      this.prevCoveredBlocks = coveredBlocks;
+    }
+
     protected override IEnumerable<ProgramModification> GetModifications(Program p) {
       modifications = new List<ProgramModification>();
       VisitProgram(p);
@@ -21,6 +31,27 @@ namespace DafnyTestGeneration {
     }
 
     public override Block VisitBlock(Block node) {
+
+      // Console.WriteLine("BlockBased VISITING BLOCK!" + node.UniqueId);
+
+      // TODO: Work out how to avoid covering an unnecessary amount of extra blocks.
+
+      // if(doneCovering){
+      //   return node;
+      // }
+      // No need to annotate blocks we don't care about covering.
+      // if(prevCoveredBlocks != null){
+      //   ISet<string> captured = ExtractCapturedStates(node);
+      //   var capturedList = captured.ToList();
+      //   capturedList.Sort();
+      //   var capturedStateBlock = capturedList.First();
+
+      //   // Newly covered block, we mark it and note that we are done.
+      //   if(!prevCoveredBlocks.Contains(capturedStateBlock)){
+      //     doneCovering = true;
+      //   }
+      // }
+
       if (program == null || impl == null) {
         return node;
       }

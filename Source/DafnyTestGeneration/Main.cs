@@ -71,7 +71,9 @@ namespace DafnyTestGeneration {
       ProgramModifier programModifier =
         DafnyOptions.O.TestGenOptions.Mode == TestGenerationOptions.Modes.Path
           ? new PathBasedModifier()
-          : new BlockBasedModifier();
+          // : new BlockBasedModifier();
+          : new BlockBasedModifier(DafnyOptions.O.TestGenOptions.prevCoveredBlocks);
+
       return programModifier.GetModifications(boogiePrograms, dafnyInfo);
     }
 
