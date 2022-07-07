@@ -140,6 +140,7 @@ namespace DafnyTestGeneration {
         var testMethod = new TestMethod(dafnyInfo, log);
         var assignments = testMethod.Assignments;
 
+        // Crude approach for serializing the generated Dafny object.
         foreach (var assignment in assignments) {
           Console.WriteLine("ASSIGNMENT:" + assignment.parentId + ":" + assignment.fieldName + ":" + assignment.childId);
         }
