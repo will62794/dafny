@@ -82,44 +82,57 @@ namespace DafnyTestGeneration {
     /// </summary>
     /// <returns></returns>
     public static async IAsyncEnumerable<TestMethod> GetTestMethodsForProgram(Program program) {
+      Console.WriteLine("Starting test method generation");
 
       var dafnyInfo = new DafnyInfo(program);
       var modifications = GetModifications(program).ToList();
+      // Console.WriteLine("Got program mods");
+
+      var prevCoveredBlocks = DafnyOptions.O.TestGenOptions.prevCoveredBlocks;
 
       // Generate tests based on counterexamples produced from modifications
       var testMethodToUniqueId = new ConcurrentDictionary<TestMethod, string>();
       for (var i = modifications.Count - 1; i >= 0; i--) {
+
+        var bm = (BlockBasedModification)modifications[i];
+
+        // If there are no captured states for this block, just skip it for now.
+        if (prevCoveredBlocks != null && bm.getCapturedStates().Count == 0) {
+          // Console.WriteLine("Skipping since no captured block states for block " + modifications[i].uniqueId);
+          continue;
+        }
+
+        // Get counterexample to cover block.
+        // Console.WriteLine("Getting counterexample for block " + modifications[i].uniqueId);
         var log = await modifications[i].GetCounterExampleLog();
+
         if (log == null) {
           continue;
         }
 
-        var coveredBlocks = DafnyOptions.O.TestGenOptions.prevCoveredBlocks;
-        // Print out approximate source code line corresponding to covered block.
-        BlockBasedModification bm = (BlockBasedModification)modifications[i];
         var capturedStates = bm.getCapturedStates();
+        Console.WriteLine(capturedStates.Count + " captured block states for block " + modifications[i].uniqueId);
+        var capturedStateBlock = "";
+        var capturedList = capturedStates.ToList();
+
         // foreach(var cs in capturedStates){
         //   Console.WriteLine("captured state:" + cs);
         // }
-        var capturedList = capturedStates.ToList();
-        var capturedStateBlock = "";
+
         if (capturedList.Count > 0) {
-          capturedList.Sort();
           capturedStateBlock = capturedList.First();
         }
 
-        if (coveredBlocks != null && coveredBlocks.Contains(capturedStateBlock)) {
+        if (prevCoveredBlocks != null && prevCoveredBlocks.Contains(capturedStateBlock)) {
           // Don't generate test for this block, if we already did.
+          // Console.WriteLine("Skipping block since we already covered it");
           continue;
-        }
-
-        if (coveredBlocks != null) {
-          i = 0;
         }
 
         Console.WriteLine("COVERED:" + capturedStateBlock);
 
         if (DafnyOptions.O.TestGenOptions.Verbose) {
+          Console.WriteLine("mod id 3: " + modifications[i].uniqueId);
           Console.WriteLine(
             $"// Extracting the test for {modifications[i].uniqueId} from the counterexample...");
         }
@@ -140,6 +153,12 @@ namespace DafnyTestGeneration {
           continue;
         }
         testMethodToUniqueId[testMethod] = modifications[i].uniqueId;
+
+        if (prevCoveredBlocks != null) {
+          // Terminate early if we covered a new block.
+          i = 0;
+        }
+
         yield return testMethod;
       }
     }
