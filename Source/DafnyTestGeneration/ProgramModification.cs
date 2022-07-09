@@ -41,7 +41,8 @@ namespace DafnyTestGeneration {
       options.ErrorTrace = 1;
       options.EnhancedErrorMessages = 1;
       options.ModelViewFile = "-";
-      options.Prune = true;
+      options.Prune = false;
+      // options.Prune = true;
       options.ProverOptions = new List<string>() {
         "O:model_compress=false",
         "O:model_evaluator.completion=true"
@@ -75,7 +76,7 @@ namespace DafnyTestGeneration {
       var writer = new StringWriter();
       await Task.WhenAny(engine.InferAndVerify(writer, program,
         new PipelineStatistics(), null,
-        _ => { }, guid), 
+        _ => { }, guid),
         Task.Delay(TimeSpan.FromSeconds(oldOptions.TestGenOptions.Timeout)));
       var log = writer.ToString();
       DafnyOptions.Install(oldOptions);

@@ -18,7 +18,7 @@ namespace DafnyTestGeneration {
     /// </summary>
     /// <returns></returns>
     public static async IAsyncEnumerable<string> GetDeadCodeStatistics(Program program) {
-      
+
       var modifications = GetModifications(program).ToList();
       var blocksReached = modifications.Count;
       HashSet<string> allStates = new();
@@ -80,7 +80,7 @@ namespace DafnyTestGeneration {
     /// </summary>
     /// <returns></returns>
     public static async IAsyncEnumerable<TestMethod> GetTestMethodsForProgram(Program program) {
-      
+
       var dafnyInfo = new DafnyInfo(program);
       var modifications = GetModifications(program).ToList();
 
@@ -98,13 +98,13 @@ namespace DafnyTestGeneration {
         }
 
         var testMethod = new TestMethod(dafnyInfo, log);
-        if (testMethodToUniqueId.ContainsKey(testMethod)) {
-          if (DafnyOptions.O.TestGenOptions.Verbose) {
-            Console.WriteLine(
-              $"// Test for {modifications[i].uniqueId} matches a test previously generated for {testMethodToUniqueId[testMethod]}.");
-          }
-          continue;
-        }
+        // if (testMethodToUniqueId.ContainsKey(testMethod)) {
+        //   if (DafnyOptions.O.TestGenOptions.Verbose) {
+        //     Console.WriteLine(
+        //       $"// Test for {modifications[i].uniqueId} matches a test previously generated for {testMethodToUniqueId[testMethod]}.");
+        //   }
+        //   continue;
+        // }
         testMethodToUniqueId[testMethod] = modifications[i].uniqueId;
         yield return testMethod;
       }
