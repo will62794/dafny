@@ -82,7 +82,7 @@ namespace DafnyTestGeneration {
     /// </summary>
     /// <returns></returns>
     public static async IAsyncEnumerable<TestMethod> GetTestMethodsForProgram(Program program) {
-      Console.WriteLine("Starting test method generation");
+      Console.WriteLine("// Starting test method generation");
 
       var dafnyInfo = new DafnyInfo(program);
       var modifications = GetModifications(program).ToList();
@@ -111,7 +111,7 @@ namespace DafnyTestGeneration {
         }
 
         var capturedStates = bm.getCapturedStates();
-        Console.WriteLine(capturedStates.Count + " captured block states for block " + modifications[i].uniqueId);
+        Console.WriteLine("//" + capturedStates.Count + " captured block states for block " + modifications[i].uniqueId);
         var capturedStateBlock = "";
         var capturedList = capturedStates.ToList();
 
@@ -141,9 +141,9 @@ namespace DafnyTestGeneration {
         var assignments = testMethod.Assignments;
 
         // Crude approach for serializing the generated Dafny object.
-        foreach (var assignment in assignments) {
-          Console.WriteLine("ASSIGNMENT:" + assignment.parentId + ":" + assignment.fieldName + ":" + assignment.childId);
-        }
+        // foreach (var assignment in assignments) {
+        // Console.WriteLine("ASSIGNMENT:" + assignment.parentId + ":" + assignment.fieldName + ":" + assignment.childId);
+        // }
 
 
         if (testMethodToUniqueId.ContainsKey(testMethod)) {

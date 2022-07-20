@@ -165,7 +165,7 @@ namespace DafnyTestGeneration {
         case SeqType seqType:
           var seqVar = variable as SeqVariable;
           if (seqVar?.GetLength() == null) {
-            return "";
+            return "\"\"";
             // return "[]";
           }
           for (var i = 0; i < seqVar.GetLength(); i++) {
@@ -177,11 +177,11 @@ namespace DafnyTestGeneration {
             elements.Add(ExtractVariable(element));
           }
           // return $"[{string.Join(", ", elements)}]";
-          // return "\"" + string.Join("", elements).Replace("'","") + "\"";
+          return "\"" + string.Join("", elements).Replace("'", "") + "\"";
 
-          // TODO: This is temporary, hacky attempt to print out Dafny string values in a 
-          // parseable format, as opposed to in char sequence form i.e. ['a','b','c'].
-          return string.Join("", elements).Replace("'", "");
+        // TODO: This is temporary, hacky attempt to print out Dafny string values in a 
+        // parseable format, as opposed to in char sequence form i.e. ['a','b','c'].
+        // return string.Join("", elements).Replace("'", "");
         case SetType:
           if (!variable.children.ContainsKey("true")) {
             return "{}";
