@@ -17,6 +17,7 @@ namespace Microsoft.Dafny {
     public bool Verbose = false;
     [CanBeNull] public string PrintBpl = null;
     public List<string> prevCoveredBlocks = null;
+    public string saveGeneratedInputFilepath = null;
 
     public bool ParseOption(string name, Bpl.CommandLineParseState ps) {
       var args = ps.args;
@@ -80,6 +81,13 @@ namespace Microsoft.Dafny {
             } else {
               prevCoveredBlocks = new List<string>(args[ps.i].Split(":"));
             }
+          }
+          return true;
+
+        // Pass a set of blocks that should be considered as already covered.
+        case "generateTestSaveGeneratedInputPath":
+          if (ps.ConfirmArgumentCount(1)) {
+            saveGeneratedInputFilepath = args[ps.i];
           }
           return true;
 

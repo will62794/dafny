@@ -140,6 +140,16 @@ namespace DafnyTestGeneration {
         var testMethod = new TestMethod(dafnyInfo, log);
         var assignments = testMethod.Assignments;
 
+
+        if (DafnyOptions.O.TestGenOptions.saveGeneratedInputFilepath != null) {
+          // Save generated test inputs as Dafny code for constructing them.
+          var lines = testMethod.TestInputConstructionLines();
+          // foreach(var x in lines){
+          //   Console.WriteLine(x);
+          // }
+          File.WriteAllLines(DafnyOptions.O.TestGenOptions.saveGeneratedInputFilepath, lines);
+        }
+
         // Crude approach for serializing the generated Dafny object.
         // foreach (var assignment in assignments) {
         // Console.WriteLine("ASSIGNMENT:" + assignment.parentId + ":" + assignment.fieldName + ":" + assignment.childId);

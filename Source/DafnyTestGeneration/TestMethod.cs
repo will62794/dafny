@@ -338,6 +338,42 @@ namespace DafnyTestGeneration {
       return new List<string>();
     }
 
+    // Return lines for constructing the synthesized test inputs.
+    public List<string> TestInputConstructionLines() {
+      List<string> lines = new();
+
+      // test method parameters and declaration:
+      // Don't use synthesized type name here.
+      var mockedLines = ObjectsToMock
+        .Select(kVPair => $"var {kVPair.id} := " +
+                          $"new {kVPair.type.ToString()}();");
+
+      // TODO: specify type
+      List<string> datatypeCreation = new();
+      foreach (var line in DatatypeCreation) {
+        if (line.type.Name == "?") {
+          datatypeCreation.Add($"var {line.id} := {line.value};");
+        } else {
+          datatypeCreation.Add($"var {line.id} : {line.type} := {line.value};");
+        }
+      }
+
+      var returnParNames = new List<string>();
+      for (var i = 0; i < DafnyInfo.GetReturnTypes(MethodName).Count; i++) {
+        returnParNames.Add("r" + i);
+      }
+
+      lines.AddRange(mockedLines);
+      lines.AddRange(datatypeCreation);
+
+      // assignments necessary to set up the test case:
+      foreach (var assignment in Assignments) {
+        lines.Add($"{assignment.parentId}.{assignment.fieldName} := " +
+                  $"{assignment.childId};");
+      }
+      return lines;
+    }
+
     /// <summary>  Return the test method as a list of lines of code </summary>
     private List<string> TestMethodLines() {
 
