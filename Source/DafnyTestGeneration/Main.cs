@@ -104,6 +104,13 @@ namespace DafnyTestGeneration {
 
         // Get counterexample to cover block.
         // Console.WriteLine("Getting counterexample for block " + modifications[i].uniqueId);
+
+        // var captured = bm.getCapturedStates().ToList();
+        // captured.Sort();
+        // foreach(var cs in captured){
+        //   Console.WriteLine("captured state:" + cs);
+        // }
+
         var log = await modifications[i].GetCounterExampleLog();
 
         if (log == null) {
@@ -120,6 +127,7 @@ namespace DafnyTestGeneration {
         // }
 
         if (capturedList.Count > 0) {
+          capturedList.Sort();
           capturedStateBlock = capturedList.First();
         }
 
