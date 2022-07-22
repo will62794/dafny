@@ -177,6 +177,25 @@ namespace DafnyTestGeneration {
             elements.Add(ExtractVariable(element));
           }
           // return $"[{string.Join(", ", elements)}]";
+
+          //
+          // Hack to work around stack overflow issue in Dafny construction of large strings.
+          // See https://amzn-aws.slack.com/archives/C018E843J0H/p1657839224937449
+          //
+          if (elements.Count > 200) {
+            int i = 0;
+            string outstr = "";
+            int chunksize = 100;
+            List<string> chunkStrs = new List<string>();
+            while (i < elements.Count) {
+              int count = Math.Min(chunksize, elements.Count - i);
+              string chunk = "\"" + string.Join("", elements.GetRange(i, count)).Replace("'", "") + "\"";
+              chunkStrs.Add(chunk);
+              i += chunksize;
+            }
+            return string.Join("+", chunkStrs);
+          }
+
           return "\"" + string.Join("", elements).Replace("'", "") + "\"";
 
         // TODO: This is temporary, hacky attempt to print out Dafny string values in a 
