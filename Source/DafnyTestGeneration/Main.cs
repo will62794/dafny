@@ -132,7 +132,7 @@ namespace DafnyTestGeneration {
 
           if (prevCoveredBlocks != null && prevCoveredBlocks.Contains(capturedBlock)) {
             // Don't generate test for this block, if we already did.
-            Console.WriteLine("Skipping block since we already covered it");
+            Console.WriteLine("// Skipping block since we already covered it");
             continue;
           }
         }
