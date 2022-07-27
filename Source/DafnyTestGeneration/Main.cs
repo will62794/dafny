@@ -96,6 +96,18 @@ namespace DafnyTestGeneration {
 
         var bm = (BlockBasedModification)modifications[i];
 
+        bool skipFile = false;
+        foreach (var cs in bm.getCapturedStates()) {
+          if (cs.Contains("gen_s3_genreq")) {
+            skipFile = true;
+            break;
+          }
+        }
+
+        if (skipFile) {
+          continue;
+        }
+
         // If there are no captured states for this block, just skip it for now.
         if (prevCoveredBlocks != null && bm.getCapturedStates().Count == 0) {
           // Console.WriteLine("Skipping since no captured block states for block " + modifications[i].uniqueId);
@@ -103,13 +115,27 @@ namespace DafnyTestGeneration {
         }
 
         // Get counterexample to cover block.
-        // Console.WriteLine("Getting counterexample for block " + modifications[i].uniqueId);
+        Console.WriteLine("Getting counterexample for block " + modifications[i].uniqueId);
 
         // var captured = bm.getCapturedStates().ToList();
         // captured.Sort();
         // foreach(var cs in captured){
         //   Console.WriteLine("captured state:" + cs);
         // }
+
+        // Optimize by skipping counterexample generation for a block if we already covered it.
+        var capturedStates1 = bm.getCapturedStates();
+        var capturedList1 = capturedStates1.ToList();
+        if (capturedList1.Count > 0) {
+          capturedList1.Sort();
+          var capturedBlock = capturedList1.First();
+
+          if (prevCoveredBlocks != null && prevCoveredBlocks.Contains(capturedBlock)) {
+            // Don't generate test for this block, if we already did.
+            Console.WriteLine("Skipping block since we already covered it");
+            continue;
+          }
+        }
 
         var log = await modifications[i].GetCounterExampleLog();
 
@@ -131,11 +157,11 @@ namespace DafnyTestGeneration {
           capturedStateBlock = capturedList.First();
         }
 
-        if (prevCoveredBlocks != null && prevCoveredBlocks.Contains(capturedStateBlock)) {
-          // Don't generate test for this block, if we already did.
-          // Console.WriteLine("Skipping block since we already covered it");
-          continue;
-        }
+        // if (prevCoveredBlocks != null && prevCoveredBlocks.Contains(capturedStateBlock)) {
+        //   // Don't generate test for this block, if we already did.
+        //   // Console.WriteLine("Skipping block since we already covered it");
+        //   continue;
+        // }
 
         Console.WriteLine("COVERED:" + capturedStateBlock);
 
