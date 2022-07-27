@@ -115,7 +115,7 @@ namespace DafnyTestGeneration {
         }
 
         // Get counterexample to cover block.
-        Console.WriteLine("Getting counterexample for block " + modifications[i].uniqueId);
+        // Console.WriteLine("// Getting counterexample for block " + modifications[i].uniqueId);
 
         // var captured = bm.getCapturedStates().ToList();
         // captured.Sort();
