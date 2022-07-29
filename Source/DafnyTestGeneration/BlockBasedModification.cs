@@ -9,8 +9,8 @@ using Program = Microsoft.Boogie.Program;
 namespace DafnyTestGeneration {
   public class BlockBasedModification : ProgramModification {
 
-    private readonly int blockId;
-    private static readonly ISet<int> covered = new HashSet<int>();
+    public readonly int blockId;
+    public static readonly ISet<int> covered = new HashSet<int>();
     // set of states (points in Dafny code) captured by the block in question:
     private readonly ISet<string> capturedStates;
 

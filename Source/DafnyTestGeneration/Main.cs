@@ -86,12 +86,25 @@ namespace DafnyTestGeneration {
 
       var dafnyInfo = new DafnyInfo(program);
       var modifications = GetModifications(program).ToList();
-      // Console.WriteLine("Got program mods");
+      Console.WriteLine("// Got " + modifications.Count + " program mods");
 
       var prevCoveredBlocks = DafnyOptions.O.TestGenOptions.prevCoveredBlocks;
 
       // Generate tests based on counterexamples produced from modifications
       var testMethodToUniqueId = new ConcurrentDictionary<TestMethod, string>();
+
+      // blockId -> captured state (i.e. line #) mapping.
+      Dictionary<int, string> blockMap = new Dictionary<int, string>();
+      for (var i = modifications.Count - 1; i >= 0; i--) {
+        var bm = (BlockBasedModification)modifications[i];
+        var cs = bm.getCapturedStates().ToList();
+        if (cs.Count > 0) {
+          cs.Sort();
+          blockMap.Add(bm.blockId, cs.First());
+          Console.WriteLine("// " + bm.blockId + ", " + cs.First());
+        }
+      }
+
       for (var i = modifications.Count - 1; i >= 0; i--) {
 
         var bm = (BlockBasedModification)modifications[i];
@@ -115,36 +128,50 @@ namespace DafnyTestGeneration {
         }
 
         // Get counterexample to cover block.
-        // Console.WriteLine("// Getting counterexample for block " + modifications[i].uniqueId);
+        Console.WriteLine("// Getting counterexample for block " + modifications[i].uniqueId);
 
-        // var captured = bm.getCapturedStates().ToList();
-        // captured.Sort();
-        // foreach(var cs in captured){
-        //   Console.WriteLine("captured state:" + cs);
-        // }
+        var capturedStates1 = bm.getCapturedStates().ToList();
+        capturedStates1.Sort();
+        Console.WriteLine("// captured state: " + capturedStates1.First());
+
+        foreach (var cs in capturedStates1) {
+          Console.WriteLine("// (sorted) captured state:" + cs);
+        }
 
         // Optimize by skipping counterexample generation for a block if we already covered it.
-        var capturedStates1 = bm.getCapturedStates();
-        var capturedList1 = capturedStates1.ToList();
-        if (capturedList1.Count > 0) {
-          capturedList1.Sort();
-          var capturedBlock = capturedList1.First();
+        // var capturedStates1 = bm.getCapturedStates();
+        // var capturedStates1 = capturedStates1.ToList();
+        if (capturedStates1.Count > 0) {
+          capturedStates1.Sort();
+          var capturedBlock = capturedStates1.First();
+          Console.WriteLine("// captured state: " + capturedBlock);
 
           if (prevCoveredBlocks != null && prevCoveredBlocks.Contains(capturedBlock)) {
             // Don't generate test for this block, if we already did.
             Console.WriteLine("// Skipping block since we already covered it");
+
+            // CONTINUE HERE OR NOT?
+            continue;
+          }
+
+          // Skip initial states (?)
+          if (capturedBlock.Contains("initial_state")) {
+            Console.WriteLine("// Ignoring initial state block");
             continue;
           }
         }
 
+
+        // Note: does this record set of blocks covered by the counterexample internally?
         var log = await modifications[i].GetCounterExampleLog();
 
         if (log == null) {
+          Console.WriteLine("// Null counterexample");
           continue;
         }
 
         var capturedStates = bm.getCapturedStates();
-        Console.WriteLine("//" + capturedStates.Count + " captured block states for block " + modifications[i].uniqueId);
+        Console.WriteLine("// " + capturedStates.Count + " captured block states for block " + modifications[i].uniqueId);
         var capturedStateBlock = "";
         var capturedList = capturedStates.ToList();
 
@@ -155,13 +182,21 @@ namespace DafnyTestGeneration {
         if (capturedList.Count > 0) {
           capturedList.Sort();
           capturedStateBlock = capturedList.First();
+          Console.WriteLine("// capturedStateBlock=" + capturedStateBlock);
+
+          foreach (var block in BlockBasedModification.covered) {
+            if (blockMap.ContainsKey(block)) {
+              Console.WriteLine("TRANSCOVERED:" + blockMap[block]);
+            }
+          }
+
         }
 
-        // if (prevCoveredBlocks != null && prevCoveredBlocks.Contains(capturedStateBlock)) {
-        //   // Don't generate test for this block, if we already did.
-        //   // Console.WriteLine("Skipping block since we already covered it");
-        //   continue;
-        // }
+        if (prevCoveredBlocks != null && prevCoveredBlocks.Contains(capturedStateBlock)) {
+          // Don't generate test for this block, if we already did.
+          // Console.WriteLine("Skipping block since we already covered it");
+          continue;
+        }
 
         Console.WriteLine("COVERED:" + capturedStateBlock);
 
